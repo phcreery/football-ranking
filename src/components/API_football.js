@@ -1,7 +1,11 @@
+
+
 async function fetchGames() {
-  let proxy = 'https://thingproxy.freeboard.io/fetch/'
+  // let proxy = 'https://thingproxy.freeboard.io/fetch/'
   // let proxy = 'http://alloworigin.com/get?url='
   // let proxy = 'https://crossorigin.me/'
+  // let proxy = 'http://192.168.1.123:8084/'
+  let proxy = 'https://peyton.creery.org/coors/'
   let request = 'https://api.collegefootballdata.com/games?year=2021&seasonType=regular'
   // let request = 'https://peyton.creery.org/cfb/games?year=2021&seasonType=regular'
   const response = await fetch(
@@ -22,13 +26,18 @@ async function fetchGames() {
         // "sec-fetch-dest": "empty",
         // "sec-fetch-mode": "cors",
         // "sec-fetch-site": "same-origin",
-        "Origin": "localhost",
+        // "Origin": "localhost",
+        // origin: 'https://api.collegefootballdata.com',
+        // origin: null,
+        // 'X-Requested-With': 'https://api.collegefootballdata.com',
+        // 'x-requested-with': 'https://peyton.creery.org/',
         // 'Access-Control-Allow-Origin': '*'
       },
-      // "referrerPolicy": "no-referrer",
+      // referrer: 'none',
+      // referrerPolicy: 'no-referrer',
       body: null,
       method: 'GET',
-      mode: 'cors',
+      // mode: 'cors',
       // "credentials": "include",
       // "crossDomain": true,
     }
@@ -38,4 +47,8 @@ async function fetchGames() {
   return json
 }
 
-export { fetchGames }
+async function fetchGames2() {
+
+}
+
+export { fetchGames, fetchGames2 }
