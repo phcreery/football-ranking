@@ -1,11 +1,12 @@
 
+// I am sorry about this mess - it is a result of brute-forcing my way to fetch an API from a web-browser.
 
 async function fetchGames() {
   // let proxy = 'https://thingproxy.freeboard.io/fetch/'
   // let proxy = 'http://alloworigin.com/get?url='
   // let proxy = 'https://crossorigin.me/'
   // let proxy = 'http://192.168.1.123:8084/'
-  let proxy = 'https://peyton.creery.org/coors/'
+  let proxy = process.env.NODE_ENV === 'production' ? 'https://peyton.creery.org/coors/' : 'https://thingproxy.freeboard.io/fetch/'
   let request = 'https://api.collegefootballdata.com/games?year=2021&seasonType=regular'
   // let request = 'https://peyton.creery.org/cfb/games?year=2021&seasonType=regular'
   const response = await fetch(

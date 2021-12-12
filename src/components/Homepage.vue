@@ -61,12 +61,10 @@
 <script>
 import { ref, onMounted } from 'vue'
 
-// import Button from 'primevue/button/sfc';
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-// import TabMenu from 'primevue/tabmenu'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import BlockUI from 'primevue/blockui'
@@ -104,7 +102,7 @@ export default {
       page_loading.value = true
       console.log('asdf')
       await refreshData()
-      // await initializePyodide()
+      await initializePyodide()
       // runTestCommand()
       computeRanking()
       page_loading.value = false
@@ -169,7 +167,7 @@ export default {
         await window.pyodide.loadPackage(['sympy', 'numpy', 'scipy'])
         console.log('pyodide loaded')
       } catch (error) {
-        console.log('error', error)
+        console.log('pyodide error', error)
       }
       python_loading.value = false
     }
