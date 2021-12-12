@@ -30,7 +30,7 @@ async function fetchGames() {
         // origin: 'https://api.collegefootballdata.com',
         // origin: null,
         // 'X-Requested-With': 'https://api.collegefootballdata.com',
-        // 'x-requested-with': 'https://peyton.creery.org/',
+        'x-requested-with': 'https://peyton.creery.org/',
         // 'Access-Control-Allow-Origin': '*'
       },
       // referrer: 'none',
