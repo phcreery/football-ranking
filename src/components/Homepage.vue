@@ -73,7 +73,7 @@ import BlockUI from 'primevue/blockui'
 
 import { FilterMatchMode } from 'primevue/api'
 
-import { fetchGames, fetchGames2 } from './API_football.js'
+import { fetchGames } from './API_football.js'
 
 // import python_version from '!!raw-loader!./python_version.py'
 // import python_sympy from '!!raw-loader!./python_sympy.py'
@@ -147,7 +147,6 @@ export default {
       table_loading.value = true
       let data
       data = await fetchGames()
-      data = await fetchGames2()
       games.value = JSON.parse(JSON.stringify(data))
       console.log(games)
       table_loading.value = false
