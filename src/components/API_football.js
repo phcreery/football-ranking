@@ -47,8 +47,5 @@ async function fetchGames() {
   return json
 }
 
-async function fetchGames2() {
 
-}
-
-export { fetchGames, fetchGames2 }
+export { fetchGames }
