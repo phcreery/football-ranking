@@ -5,22 +5,27 @@
     <div class="p-d-flex p-jc-between">
       <h1>{{ selectedYear1 }} Football Rankings</h1>
       <div class="p-p-3">
-        <Dropdown class="p-mx-1" v-model="selectedYear1" :options="years" optionLabel="label" optionValue="value" placeholder="Select a Year" />
-        <Button class="p-mx-1" icon="pi pi-info-circle" @click="showInfo()" v-tooltip.bottom="'Info'" />
+        <Dropdown class="p-m-1" v-model="selectedYear1" :options="years" optionLabel="label" optionValue="value" placeholder="Select a Year" />
+        <Button class="p-m-1" icon="pi pi-info-circle" @click="openModal()" v-tooltip.bottom="'Info'" />
         <Button
-          class="p-mx-1"
+          class="p-m-1"
           :icon="table_loading ? 'pi pi-spin pi-cloud-download' : 'pi pi-cloud-download'"
           @click="fetchData()"
           v-tooltip.bottom="'Update Games'"
         />
         <Button
-          class="p-mx-1"
+          class="p-m-1"
           :icon="python_loading ? 'pi pi-spin pi-bolt' : 'pi pi-bolt'"
           @click="computeRanking()"
           v-tooltip.bottom="'Recompute Rankings'"
         />
       </div>
     </div>
+    <transition-group name="p-message" tag="div">
+      <Message v-if="table_loading" severity="info">Fetching New Game Data</Message>
+      <Message v-if="python_initializing" severity="info">Warming up flux capacitor</Message>
+      <Message v-if="python_loading" severity="info">Computing Ranking</Message>
+    </transition-group>
     <TabView>
       <TabPanel header="All Games">
         <DataTable
@@ -71,6 +76,19 @@
         </DataTable>
       </TabPanel>
     </TabView>
+
+    <Dialog header="Header" v-model:visible="displayModal" :style="{ width: '50vw' }" :modal="true">
+      <p class="p-m-0">
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
+        velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
+        anim id est laborum.
+      </p>
+      <template #footer>
+        <!-- <Button label="Ok" icon="pi pi-times" @click="closeModal()" class="p-button-text" /> -->
+        <Button label="Cool" icon="pi pi-check" @click="closeModal()" autofocus />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -86,6 +104,8 @@ import TabPanel from 'primevue/tabpanel'
 import BlockUI from 'primevue/blockui'
 import Toast from 'primevue/toast'
 import Dropdown from 'primevue/dropdown'
+import Dialog from 'primevue/dialog'
+import Message from 'primevue/message'
 
 import { FilterMatchMode } from 'primevue/api'
 import { useToast } from 'primevue/usetoast'
@@ -108,14 +128,19 @@ export default {
     BlockUI: BlockUI,
     Toast: Toast,
     Dropdown: Dropdown,
+    Dialog: Dialog,
+    Message: Message,
   },
   setup() {
     const page_loading = ref(false)
     const table_loading = ref(false)
+    const python_loading = ref(false)
 
     const current_year = new Date().getFullYear()
     const years = ref(Array.from({ length: 20 }, (_, i) => ({ label: current_year - i, value: current_year - i })))
     const selectedYear1 = ref(new Date().getFullYear())
+    const displayModal = ref(false)
+
     const games = ref(null)
     const ranking = ref(null)
     const filters1 = ref({
@@ -185,7 +210,8 @@ export default {
       table_loading.value = false
     }
 
-    function computeRanking() {
+    async function computeRanking() {
+      python_loading.value = true
       let ranking_as_map = pyodide.run(python_numpy, games.value)
 
       // Convert Map to Array
@@ -201,12 +227,21 @@ export default {
       ranking.value = sorted_ranking
 
       console.log('Result Rankings:', ranking.value)
+      python_loading.value = false
+    }
+
+    function openModal() {
+      displayModal.value = true
+    }
+    const closeModal = () => {
+      displayModal.value = false
     }
 
     return {
       page_loading,
       table_loading,
-      python_loading: pyodide.isLoading,
+      python_loading,
+      python_initializing: pyodide.isLoading,
       selectedYear1,
       years,
       games,
@@ -215,10 +250,17 @@ export default {
       initFilters1,
       fetchData,
       computeRanking,
+      openModal,
+      closeModal,
+      displayModal,
     }
   },
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
-<style scoped></style>
+<style>
+.p-tabview-panels {
+  padding: 0 !important;
+}
+</style>

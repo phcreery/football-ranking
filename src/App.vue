@@ -14,8 +14,15 @@ export default {
 </script>
 
 <style>
+:root {
+  font-size: 14px !important;
+}
 #app {
-  font-size: 16px;
-  font-family: 'Lobster', Helvetica, Arial, sans-serif;
+  /* font-size: 12px !important; */
+  /* font-family: 'Lobster', Helvetica, Arial, sans-serif; */
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+}
+body {
+  /* margin: 0px; */
 }
 </style>
