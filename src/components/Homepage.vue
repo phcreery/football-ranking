@@ -1,34 +1,27 @@
 <template>
   <div>
     <BlockUI :blocked="page_loading" :fullScreen="true"> </BlockUI>
+    <Toast />
     <div class="p-d-flex p-jc-between">
-      <h1>Football Ranking</h1>
-      <div class="p-p-3"><Button label="Refresh" @click="refreshData()" /></div>
+      <h1>{{ selectedYear1 }} Football Rankings</h1>
+      <div class="p-p-3">
+        <Dropdown class="p-mx-1" v-model="selectedYear1" :options="years" optionLabel="label" optionValue="value" placeholder="Select a Year" />
+        <Button class="p-mx-1" icon="pi pi-info-circle" @click="showInfo()" v-tooltip.bottom="'Info'" />
+        <Button
+          class="p-mx-1"
+          :icon="table_loading ? 'pi pi-spin pi-cloud-download' : 'pi pi-cloud-download'"
+          @click="fetchData()"
+          v-tooltip.bottom="'Update Games'"
+        />
+        <Button
+          class="p-mx-1"
+          :icon="python_loading ? 'pi pi-spin pi-bolt' : 'pi pi-bolt'"
+          @click="computeRanking()"
+          v-tooltip.bottom="'Recompute Rankings'"
+        />
+      </div>
     </div>
     <TabView>
-      <TabPanel header="Ranking">
-        <DataTable
-          :value="ranking"
-          responsiveLayout="scroll"
-          class="p-datatable-sm p-datatable-customers"
-          :loading="python_loading"
-          dataKey="id"
-          v-model:filters="filters1"
-          :globalFilterFields="['name']"
-        >
-          <template #header>
-            <div class="p-d-flex p-jc-between">
-              <Button type="button" icon="pi pi-filter-slash" label="Clear" class="p-button-outlined" @click="initFilters1()" />
-              <span class="p-input-icon-left">
-                <i class="pi pi-search" />
-                <InputText v-model="filters1['global'].value" placeholder="Keyword Search" />
-              </span>
-            </div>
-          </template>
-          <Column field="rank" header="Rank"></Column>
-          <Column field="name" header="Team"></Column>
-        </DataTable>
-      </TabPanel>
       <TabPanel header="All Games">
         <DataTable
           :value="games"
@@ -54,6 +47,29 @@
           <Column field="away_team" header="Visitors"></Column>
         </DataTable>
       </TabPanel>
+      <TabPanel header="Ranking">
+        <DataTable
+          :value="ranking"
+          responsiveLayout="scroll"
+          class="p-datatable-sm p-datatable-customers"
+          :loading="python_loading"
+          dataKey="id"
+          v-model:filters="filters1"
+          :globalFilterFields="['name']"
+        >
+          <template #header>
+            <div class="p-d-flex p-jc-between">
+              <Button type="button" icon="pi pi-filter-slash" label="Clear" class="p-button-outlined" @click="initFilters1()" />
+              <span class="p-input-icon-left">
+                <i class="pi pi-search" />
+                <InputText v-model="filters1['global'].value" placeholder="Keyword Search" />
+              </span>
+            </div>
+          </template>
+          <Column field="rank" header="Rank"></Column>
+          <Column field="name" header="Team"></Column>
+        </DataTable>
+      </TabPanel>
     </TabView>
   </div>
 </template>
@@ -68,9 +84,13 @@ import InputText from 'primevue/inputtext'
 import TabView from 'primevue/tabview'
 import TabPanel from 'primevue/tabpanel'
 import BlockUI from 'primevue/blockui'
+import Toast from 'primevue/toast'
+import Dropdown from 'primevue/dropdown'
 
 import { FilterMatchMode } from 'primevue/api'
+import { useToast } from 'primevue/usetoast'
 
+import { usePyodide } from './pyodide.js'
 import { fetchGames } from './API_football.js'
 
 // import python_version from '!!raw-loader!./python_version.py'
@@ -83,27 +103,35 @@ export default {
     DataTable: DataTable,
     Column: Column,
     InputText: InputText,
-    // TabMenu:TabMenu,
     TabView: TabView,
     TabPanel: TabPanel,
     BlockUI: BlockUI,
+    Toast: Toast,
+    Dropdown: Dropdown,
   },
   setup() {
-    const table_loading = ref(false)
-    const python_loading = ref(false)
     const page_loading = ref(false)
+    const table_loading = ref(false)
+
+    const current_year = new Date().getFullYear()
+    const years = ref(Array.from({ length: 20 }, (_, i) => ({ label: current_year - i, value: current_year - i })))
+    const selectedYear1 = ref(new Date().getFullYear())
     const games = ref(null)
     const ranking = ref(null)
     const filters1 = ref({
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
     })
 
+    const pyodide = usePyodide(document, window)
+    const toast = useToast()
+
     onMounted(async () => {
       page_loading.value = true
-      console.log('asdf')
-      await refreshData()
-      await initializePyodide()
-      // runTestCommand()
+      await fetchData()
+      await pyodide.init()
+      if (pyodide.isInit.value === false)
+        toast.add({ severity: 'error', summary: 'Pyodide Init Failed', detail: 'See console log for details', life: 3000 })
+      console.log('globale window pyodide', window.pyodide)
       computeRanking()
       page_loading.value = false
     })
@@ -114,92 +142,78 @@ export default {
       }
     }
 
-    function loadScript(src) {
-      // eslint-disable-line no-param-reassign
-      return new Promise(function (resolve, reject) {
-        let shouldAppend = false
-        let el = document.querySelector('script[src="' + src + '"]')
-        if (!el) {
-          el = document.createElement('script')
-          el.type = 'text/javascript'
-          el.async = true
-          el.src = src
-          shouldAppend = true
-        } else if (el.hasAttribute('data-loaded')) {
-          resolve(el)
-          return
+    const countOccurrences = (arr, val) => arr.reduce((a, v) => (v === val ? a + 1 : a), 0)
+    const removeDuplcates = (array) => [...new Set(array)]
+
+    function filterTeams(games) {
+      let games_init = games
+      let away_teams = games.map((game) => game.away_team)
+      let home_teams = games.map((game) => game.home_team)
+      let teams = away_teams.concat(home_teams)
+      let team_roster = teams
+
+      let removed_teams = []
+      teams.forEach((team) => {
+        let games_played = countOccurrences(teams, team)
+        // console.log(team, 'played', games_played, 'x')
+        if (games_played < 5) {
+          removed_teams.push(team)
+          games = games.filter((game) => game.home_team !== team)
+          games = games.filter((game) => game.away_team !== team)
         }
-
-        el.addEventListener('error', reject)
-        el.addEventListener('abort', reject)
-        el.addEventListener('load', function loadScriptHandler() {
-          el.setAttribute('data-loaded', true)
-          resolve(el)
-        })
-
-        if (shouldAppend) document.head.appendChild(el)
       })
+      console.log('teams initially gathered', removeDuplcates(team_roster).length, removeDuplcates(team_roster))
+      console.log('removed teams', removeDuplcates(removed_teams).length, removeDuplcates(removed_teams))
+      console.log('games initially', games_init.length)
+      console.log('games left', games.length, games)
+      return games
     }
 
-    async function refreshData() {
+    async function fetchData() {
       table_loading.value = true
       let data
-      data = await fetchGames()
+      data = await fetchGames(selectedYear1.value)
+
+      if (data.this === 'failed') {
+        toast.add({ severity: 'error', summary: 'Network Fetch Failed', detail: data.because.message + ' - See console log for details', life: 3000 })
+        return
+      }
+      data = filterTeams(data)
+
       games.value = JSON.parse(JSON.stringify(data))
       console.log(games)
       table_loading.value = false
     }
 
-    async function initializePyodide() {
-      python_loading.value = true
-      let LOCAL_PYODIDE = false
-      try {
-        if (LOCAL_PYODIDE) {
-          let LOCAL_PYODIDE_SERVER_URL = 'http://localhost:8081/'
-          window.languagePluginUrl = `${LOCAL_PYODIDE_SERVER_URL}`
-          await loadScript(`${LOCAL_PYODIDE_SERVER_URL}pyodide.js`)
-        } else {
-          window.languagePluginUrl = 'https://cdn.jsdelivr.net/pyodide/v0.18.1/full/'
-          await loadScript('https://cdn.jsdelivr.net/pyodide/v0.18.1/full/pyodide.js')
-        }
-        // wait for pyodide ready
-        await window.languagePluginLoader
-        await window.pyodide.loadPackage(['sympy', 'numpy', 'scipy'])
-        console.log('pyodide loaded')
-      } catch (error) {
-        console.log('pyodide error', error)
-      }
-      python_loading.value = false
-    }
     function computeRanking() {
-      python_loading.value = true
-      window.data = JSON.parse(JSON.stringify(games.value))
-      window.ranking = []
+      let ranking_as_map = pyodide.run(python_numpy, games.value)
 
-      console.log('py:', window.pyodide.runPython(python_numpy))
-      let ranking_as_map = window.ranking.toJs()
+      // Convert Map to Array
       let unsorted_ranking = Array.from(ranking_as_map, ([name, value]) => ({ name, value }))
+      // Sort Array by decreasing value of key: value
       let sorted_ranking = unsorted_ranking.slice().sort((a, b) => {
         return b.value - a.value
       })
+      // Add ranking integer value
       sorted_ranking.map((v) => {
         v.rank = sorted_ranking.indexOf(v) + 1
       })
       ranking.value = sorted_ranking
-      console.log(ranking.value)
-      python_loading.value = false
+
+      console.log('Result Rankings:', ranking.value)
     }
 
     return {
-      table_loading,
-      python_loading,
       page_loading,
+      table_loading,
+      python_loading: pyodide.isLoading,
+      selectedYear1,
+      years,
       games,
       ranking,
       filters1,
       initFilters1,
-      refreshData,
-      initializePyodide,
+      fetchData,
       computeRanking,
     }
   },
