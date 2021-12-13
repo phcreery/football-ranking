@@ -50,6 +50,11 @@
           <Column field="home_points" header="Score"></Column>
           <Column field="away_points" header="Score"></Column>
           <Column field="away_team" header="Visitors"></Column>
+          <Column field="start_date" header="Date Played" :sortable="true">
+            <template #body="slotProps">
+              <p>{{ new Date(Date.parse(slotProps.data.start_date)).toLocaleDateString('en-US') }}</p>
+            </template>
+          </Column>
         </DataTable>
       </TabPanel>
       <TabPanel header="Ranking">
