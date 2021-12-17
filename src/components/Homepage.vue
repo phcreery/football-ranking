@@ -5,7 +5,15 @@
     <div class="p-d-flex p-jc-between">
       <h1>{{ selectedYear1 }} Football Rankings</h1>
       <div class="p-p-3">
-        <Dropdown class="p-m-1" v-model="selectedYear1" :options="years" optionLabel="label" optionValue="value" placeholder="Select a Year" />
+        <Dropdown
+          class="p-m-1"
+          v-model="selectedYear1"
+          :options="years"
+          optionLabel="label"
+          optionValue="value"
+          placeholder="Select a Year"
+          @change="refreshAll()"
+        />
         <Button class="p-m-1" icon="pi pi-info-circle" @click="openModal()" v-tooltip.bottom="'Info'" />
         <Button
           class="p-m-1"
@@ -84,11 +92,33 @@
 
     <Dialog header="Header" v-model:visible="displayModal" :style="{ width: '50vw' }" :modal="true">
       <p class="p-m-0">
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
-        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate
-        velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit
-        anim id est laborum.
+        This algorithm is developed by <a href="https://github.com/lucascreery">Lucas Creery</a>. An example of the original algorithm in matlab is
+        below.
       </p>
+      <pre>
+        <code>clc
+clear
+close all
+% s is score matrix
+SO = readmatrix('College_football_2021.xlsx','Range',[2 2 131 131]);
+SO(isnan(SO)) = 0;
+names = readcell('College_football_2021.xlsx','Range','A2:A131');
+% offensive based rankings
+r1 = abs(null(SO-diag(sum(SO,1))));
+% defensive based rankings
+SD = (SO');
+SD(isinf(SD)) = 0;
+r2 = abs(null(SD-diag(sum(SD,1))));
+% combined
+r = r1./r2;
+[B,i] = sort(r,'descend');
+% i
+out = fopen('rankings.txt','w');
+for n = 1:length(i)
+    fprintf(out,'%d. %s\n', n, names{i(n)});
+end
+fclose(out);</code>
+      </pre>
       <template #footer>
         <!-- <Button label="Ok" icon="pi pi-times" @click="closeModal()" class="p-button-text" /> -->
         <Button label="Cool" icon="pi pi-check" @click="closeModal()" autofocus />
@@ -155,7 +185,11 @@ export default {
     const pyodide = usePyodide(document, window)
     const toast = useToast()
 
-    onMounted(async () => {
+    onMounted(() => {
+      refreshAll()
+    })
+
+    async function refreshAll() {
       page_loading.value = true
       await fetchData()
       await pyodide.init()
@@ -164,7 +198,7 @@ export default {
       console.log('globale window pyodide', window.pyodide)
       computeRanking()
       page_loading.value = false
-    })
+    }
 
     const initFilters1 = () => {
       filters1.value = {
@@ -253,6 +287,7 @@ export default {
       ranking,
       filters1,
       initFilters1,
+      refreshAll,
       fetchData,
       computeRanking,
       openModal,
@@ -267,5 +302,11 @@ export default {
 <style>
 .p-tabview-panels {
   padding: 0 !important;
+}
+pre code {
+  background-color: #eee;
+  border: 1px solid #999;
+  display: block;
+  padding: 20px;
 }
 </style>
