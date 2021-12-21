@@ -44,6 +44,7 @@
           dataKey="id"
           v-model:filters="filters1"
           :globalFilterFields="['home_team', 'away_team']"
+          removableSort
         >
           <template #header>
             <div class="p-d-flex p-jc-between">
