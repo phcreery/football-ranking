@@ -151,7 +151,7 @@ import { fetchGames } from './API_football.js'
 
 // import python_version from '!!raw-loader!./python_version.py'
 // import python_sympy from '!!raw-loader!./python_sympy.py'
-import python_numpy from '!!raw-loader!./python_numpy.py'
+import python_numpy from './python_numpy.py?raw'
 
 export default {
   components: {
