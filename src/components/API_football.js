@@ -6,7 +6,7 @@ async function fetchGames(year) {
   // let proxy = 'https://crossorigin.me/'
   // let proxy = 'http://192.168.1.123:8084/'
   let proxy = process.env.NODE_ENV === 'production' ? 'https://peyton.creery.org/coors/' : 'https://thingproxy.freeboard.io/fetch/'
-  let request = `https://api.collegefootballdata.com/games?year=${year}&seasonType=regular`
+  let request = `api.collegefootballdata.com:443/games?year=${year}&seasonType=regular`
   // let request = 'https://peyton.creery.org/cfb/games?year=2021&seasonType=regular'
   const response = await fetch(
     // request,
